@@ -1,0 +1,38 @@
+name: Create Folder Release Zips
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers workflow when you push a tag like v1.0
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to upload release assets
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Zip each folder
+        run: |
+          mkdir -p dist
+          # Loop through all directories in the root
+          for dir in */; do
+            dir_name=${dir%/}
+            # Skip hidden directories like .git or .github
+            if [[ ! "$dir_name" == .* && "$dir_name" != "dist" ]]; then
+              echo "Zipping $dir_name..."
+              # Zip the folder contents (-r means recursive)
+              zip -r "dist/${dir_name}.zip" "$dir_name"
+            fi
+          done
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
